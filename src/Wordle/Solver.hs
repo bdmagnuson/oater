@@ -1,18 +1,16 @@
-module Wordle.Solver () where
+module Wordle.Solver (solve) where
 
-import Control.Applicative
 import Control.Lens
-import Control.Monad
 import Data.Char
-import Data.Either
-import Data.Function
 import Data.List
+import Data.Map.Strict qualified as M
 import Data.Monoid
 import Data.Ord
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as TIO
-import Data.Vector qualified as V
+import Data.Vector.Unboxed qualified as V
+import System.IO.Unsafe (unsafePerformIO)
 
 data Letter
   = Correct Char Int
@@ -43,27 +41,27 @@ applyAll = appEndo . mconcat . map Endo
 reduceG :: Guess -> Dictionary -> Dictionary
 reduceG g = applyAll (map reduceL g)
 
-guessWord :: Dictionary -> Text
-guessWord d = head (go 5 d)
+guessWord :: Dictionary -> Dictionary -> Text
+guessWord _ [d] = d
+guessWord fd gd = let bc = balancedChar gd in if null bc then head gd else go fd bc
   where
-    go 0 d = d
-    go n d = go (n - 1) (filter (hasLetter (balancedChar d)) d)
+    go [] [] = error "wtf"
+    go d [] = head d
+    go d ch@(c : cs) =
+      let d' = filter (hasLetter c) d
+       in case d' of
+            [] -> go d cs
+            [w] -> w
+            ws -> go d' cs
 
-balancedChar :: Dictionary -> Char
-balancedChar d = (fst . head) (sortOn snd idx')
+balancedChar :: Dictionary -> [Char]
+balancedChar d = map fst (sortOn (Down . snd) idx)
   where
-    az = ['a' .. 'z']
-    sub :: V.Vector (Either Int Int)
-    sub = V.replicate 26 (Left (-1))
-    f w v = V.zipWith (add) v (V.update sub (V.fromList [(ord c - ord 'a', Right 1) | c <- T.unpack w]))
-    counts = (foldr f (V.replicate 26 (Left 0)) d) & traversed . both %~ abs
-    idx = (zip az (V.toList counts)) ^.. folded . filtered (\(_, x) -> isRight x)
-    idx' = (fmap . fmap) (fromRight 0) idx
-
-add (Left a) (Left b) = Left (a + b)
-add (Right a) (Left b) = Right (a + b)
-add (Left a) (Right b) = Right (a + b)
-add (Right a) (Right b) = Right (a + b)
+    f v w = foldl' (\x c -> x & at c . non 0 %~ (+ 1)) v (nub (T.unpack w))
+    counts = M.filter (/= 0) (foldl' f M.empty d & traverse %~ triangle)
+    idx = M.toList counts
+    l = length d
+    triangle x = let m = l `div` 2 in if x >= m then l - x else x
 
 checkGuess :: Text -> Text -> Guess
 checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
@@ -74,14 +72,9 @@ checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
       | otherwise = Incorrect l2
 
 solve :: Dictionary -> Text -> [Text]
-solve d w = go 10 d
+solve fd w = go 20 fd
   where
     go 0 _ = []
-    go n d = let g = guessWord d in if (g == w) then [g] else g : (go (n - 1) (reduceG (checkGuess w g) d))
+    go n d = let g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
 
-main =
-  do
-    d <- T.lines <$> TIO.readFile "wordlist.txt"
-    let scores = map (length . solve d) (take 100 d)
-    putStrLn $ "maximum solve: " ++ (show (maximum scores))
-    putStrLn $ "average solve: " ++ (show (fromIntegral (sum scores) / fromIntegral (length scores)))
+fd = T.lines (unsafePerformIO (TIO.readFile "wordlist.txt"))

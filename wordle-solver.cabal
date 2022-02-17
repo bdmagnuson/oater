@@ -29,9 +29,16 @@ executable wordle-solver
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.14.3.0
+    build-depends:      base ^>=4.14.3.0
+                      , wordle-solver-lib
+                       , text
+
+    ghc-options: -O2
     hs-source-dirs:   app
     default-language: Haskell2010
+
+    default-extensions:   ImportQualifiedPost
+                        , TemplateHaskell
 
 library wordle-solver-lib
 
@@ -43,6 +50,7 @@ library wordle-solver-lib
   -- other-extensions:
   build-depends:    base ^>=4.14.3.0
   default-language: Haskell2010
+  ghc-options: -O2
 
   build-depends:         base >= 4.13
                        , text
