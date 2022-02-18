@@ -22,6 +22,9 @@ type Guess = [Letter]
 
 type Dictionary = [Text]
 
+applyAll :: [a -> a] -> a -> a
+applyAll = appEndo . mconcat . map Endo
+
 hasLetter :: Char -> Text -> Bool
 hasLetter c t =
   case T.find (== c) t of
@@ -35,11 +38,16 @@ reduceL l d =
     Contains c i -> (filter (\x -> T.index x i /= c) . filter (hasLetter c)) d
     Incorrect c -> filter (not . hasLetter c) d
 
-applyAll :: [a -> a] -> a -> a
-applyAll = appEndo . mconcat . map Endo
-
 reduceG :: Guess -> Dictionary -> Dictionary
 reduceG g = applyAll (map reduceL g)
+
+balancedChar :: Dictionary -> [Char]
+balancedChar d = map fst (sortOn (Down . snd) (M.toList counts))
+  where
+    l = length d
+    f v w = foldl' (\x c -> x & at c . non 0 %~ (+ 1)) v (nub (T.unpack w))
+    counts = M.filter (/= 0) (foldl' f M.empty d & traverse %~ triangle)
+    triangle x = let m = l `div` 2 in if x >= m then l - x else x
 
 guessWord :: Dictionary -> Dictionary -> Text
 guessWord _ [d] = d
@@ -54,15 +62,6 @@ guessWord fd gd = let bc = balancedChar gd in if null bc then head gd else go fd
             [w] -> w
             ws -> go d' cs
 
-balancedChar :: Dictionary -> [Char]
-balancedChar d = map fst (sortOn (Down . snd) idx)
-  where
-    f v w = foldl' (\x c -> x & at c . non 0 %~ (+ 1)) v (nub (T.unpack w))
-    counts = M.filter (/= 0) (foldl' f M.empty d & traverse %~ triangle)
-    idx = M.toList counts
-    l = length d
-    triangle x = let m = l `div` 2 in if x >= m then l - x else x
-
 checkGuess :: Text -> Text -> Guess
 checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
   where
@@ -71,10 +70,8 @@ checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
       | hasLetter l2 w = Contains l2 i
       | otherwise = Incorrect l2
 
-solve :: Dictionary -> Text -> [Text]
-solve fd w = go 20 fd
+solve :: Dictionary -> Dictionary -> Text -> [Text]
+solve fd gd w = go 20 gd
   where
     go 0 _ = []
     go n d = let g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
-
-fd = T.lines (unsafePerformIO (TIO.readFile "wordlist.txt"))

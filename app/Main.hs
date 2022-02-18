@@ -7,10 +7,9 @@ import Wordle.Solver
 
 main =
   do
-    -- d <- T.lines <$> TIO.readFile "wordlelist.txt"
-    d <- T.lines <$> TIO.readFile "wordlist.txt"
-    let scores = map (length . solve d) (take 200000 d)
-    print $ filter (\(_, s) -> s == 8) (zip d scores)
+    fd <- T.lines <$> TIO.readFile "wordle-allowed-guesses.txt"
+    gd <- T.lines <$> TIO.readFile "wordle-answers-alphabetical.txt"
+    let scores = map (length . solve fd gd) gd
 
     putStrLn $ "maximum solve: " ++ show (maximum scores)
     putStrLn $ "average solve: " ++ show (fromIntegral (sum scores) / fromIntegral (length scores))
