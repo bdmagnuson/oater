@@ -1,21 +1,25 @@
-module Wordle.Solver (solve) where
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
+
+module Solver (solve, guessWord', Letter (..), Guess) where
 
 import Control.Lens
 import Data.Char
 import Data.List
-import Data.Map.Strict qualified as M
+import qualified Data.Map.Strict as M
 import Data.Monoid
 import Data.Ord
 import Data.Text (Text)
-import Data.Text qualified as T
-import Data.Text.IO qualified as TIO
-import Data.Vector.Unboxed qualified as V
+import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
+import qualified Data.Vector.Unboxed as V
 import System.IO.Unsafe (unsafePerformIO)
 
 data Letter
   = Correct Char Int
   | Contains Char Int
   | Incorrect Char
+  | NoAnswer
   deriving (Show)
 
 type Guess = [Letter]
@@ -37,6 +41,7 @@ reduceL l d =
     Correct c i -> filter (\x -> T.index x i == c) d
     Contains c i -> (filter (\x -> T.index x i /= c) . filter (hasLetter c)) d
     Incorrect c -> filter (not . hasLetter c) d
+    NoAnswer -> d
 
 reduceG :: Guess -> Dictionary -> Dictionary
 reduceG g = applyAll (map reduceL g)
@@ -50,6 +55,7 @@ balancedChar d = map fst (sortOn (Down . snd) (M.toList counts))
     triangle x = let m = l `div` 2 in if x >= m then l - x else x
 
 guessWord :: Dictionary -> Dictionary -> Text
+guessWord _ [] = T.pack "     "
 guessWord _ [d] = d
 guessWord fd gd = let bc = balancedChar gd in if null bc then head gd else go fd bc
   where
@@ -61,6 +67,9 @@ guessWord fd gd = let bc = balancedChar gd in if null bc then head gd else go fd
             [] -> go d cs
             [w] -> w
             ws -> go d' cs
+
+guessWord' :: Dictionary -> Dictionary -> Guess -> Text
+guessWord' fd gd g = guessWord fd (reduceG g gd)
 
 checkGuess :: Text -> Text -> Guess
 checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
@@ -75,3 +84,7 @@ solve fd gd w = go 20 gd
   where
     go 0 _ = []
     go n d = let g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
+
+fd = unsafePerformIO $ T.lines <$> TIO.readFile "wordle-allowed-guesses.txt"
+
+gd = unsafePerformIO $ T.lines <$> TIO.readFile "wordle-answers-alphabetical.txt"
