@@ -1,19 +1,19 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Solver (solve, guessWord', Letter (..), Guess) where
+module Wordle.Solver (solve, guessWord', Letter (..), Guess) where
 
 import Control.Lens
 import Data.Char
 import Data.List
-import qualified Data.Map.Strict as M
+import Data.Map.Strict qualified as M
+import Data.Maybe (isJust)
 import Data.Monoid
 import Data.Ord
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import qualified Data.Vector.Unboxed as V
-import System.IO.Unsafe (unsafePerformIO)
+import Data.Text qualified as T
+import Data.Text.IO qualified as TIO
+import Data.Vector.Unboxed qualified as V
 
 data Letter
   = Correct Char Int
@@ -30,10 +30,7 @@ applyAll :: [a -> a] -> a -> a
 applyAll = appEndo . mconcat . map Endo
 
 hasLetter :: Char -> Text -> Bool
-hasLetter c t =
-  case T.find (== c) t of
-    Nothing -> False
-    Just _ -> True
+hasLetter c t = isJust (T.find (== c) t)
 
 reduceL :: Letter -> Dictionary -> Dictionary
 reduceL l d =
@@ -84,7 +81,3 @@ solve fd gd w = go 20 gd
   where
     go 0 _ = []
     go n d = let g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
-
-fd = unsafePerformIO $ T.lines <$> TIO.readFile "wordle-allowed-guesses.txt"
-
-gd = unsafePerformIO $ T.lines <$> TIO.readFile "wordle-answers-alphabetical.txt"
