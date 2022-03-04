@@ -13,7 +13,6 @@ import Data.Ord
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text.IO qualified as TIO
-import Data.Vector.Unboxed qualified as V
 
 data Letter
   = Correct Char Int
@@ -51,21 +50,21 @@ balancedChar d = map fst (sortOn (Down . snd) (M.toList counts))
     counts = M.filter (/= 0) (foldl' f M.empty d & traverse %~ triangle)
     triangle x = let m = l `div` 2 in if x >= m then l - x else x
 
-guessWord :: Dictionary -> Dictionary -> Text
-guessWord _ [] = T.pack "     "
-guessWord _ [d] = d
-guessWord fd gd = let bc = balancedChar gd in if null bc then head gd else go fd bc
+guessWord :: Dictionary -> Dictionary -> Maybe Text
+guessWord _ [] = Nothing
+guessWord _ [d] = Just d
+guessWord fd gd = let bc = balancedChar gd in if null bc then Just (head gd) else go fd bc
   where
-    go [] [] = error "wtf"
-    go d [] = head d
+    go [] [] = Nothing
+    go d [] = Just (head d)
     go d ch@(c : cs) =
       let d' = filter (hasLetter c) d
        in case d' of
             [] -> go d cs
-            [w] -> w
+            [w] -> Just w
             ws -> go d' cs
 
-guessWord' :: Dictionary -> Dictionary -> Guess -> Text
+guessWord' :: Dictionary -> Dictionary -> Guess -> Maybe Text
 guessWord' fd gd g = guessWord fd (reduceG g gd)
 
 checkGuess :: Text -> Text -> Guess
@@ -80,4 +79,4 @@ solve :: Dictionary -> Dictionary -> Text -> [Text]
 solve fd gd w = go 20 gd
   where
     go 0 _ = []
-    go n d = let g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
+    go n d = let Just g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)

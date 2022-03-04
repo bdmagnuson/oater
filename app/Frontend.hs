@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecursiveDo #-}
@@ -7,6 +8,7 @@
 
 import Control.Applicative
 import Control.Monad
+import Data.Bifunctor
 import qualified Data.ByteString.Char8 as BS
 import Data.Char (toUpper)
 import Data.FileEmbed
@@ -21,41 +23,50 @@ main = mainWidgetWithCss css bodyElement
   where
     css = $(embedFile "css/simple.css")
 
-indexA i = fmap (!! i)
+indexA y x = fmap ((!! x) . (!! y))
+
+bisequence :: MonadWidget t m => m [(Dynamic t Color, Event t ())] -> m (Dynamic t [Color], Event t ())
+bisequence = fmap ((\(a, b) -> (sequence a, mergeWith (const id) b)) . unzip)
+
+bi2 :: MonadWidget t m => m [(Dynamic t [Color], Event t ())] -> m (Dynamic t [[Color]], [Event t ()])
+bi2 = fmap ((\(a, b) -> (sequence a, b)) . unzip)
 
 bodyElement :: MonadWidget t m => m ()
 bodyElement = mdo
   el "h1" $ text "Wordle Solver"
   elClass "div" "container" $ mdo
     let guess = makeGuess <$> colors
-    colors <- sequence <$> forM [0 .. 29] (\i -> box evReset (indexA i guess))
+    let clear = map (\n -> mconcat (evReset : (take n clicks))) [0 .. 5]
+    (colors, clicks) <- bi2 $ forM [0 .. 5] (\y -> bisequence $ forM [0 .. 4] (\x -> box (clear !! y) (indexA y x $ guess)))
     return ()
   evReset <- elClass "div" "button" (button "Reset")
   return ()
 
--- box :: MonadWidget t m => Dynamic t T.Text -> m (Dynamic t Color)
-box r i = elClass "div" "whatever" $ mdo
-  (e, _) <- elDynClass' "div" (attrs <$> dClass) (dynText i)
+box :: MonadWidget t m => Event t b -> Dynamic t T.Text -> m (Dynamic t Color, Event t ())
+box r i = mdo
+  (e, _) <- elDynAttr' "div" (attrs <$> dClass) (dynText i)
   let ev = domEvent Click e
   dClass <- foldDyn ($) Black $ leftmost [nextColor <$ ev, const Black <$ r]
-  return dClass
+  return (dClass, ev)
 
-chunksOf :: Int -> [a] -> [[a]]
-chunksOf n c =
-  case splitAt n c of
-    (x, []) -> [x]
-    (x, xs) -> x : chunksOf n xs
+-- attrs :: Color -> T.Text
+attrs Black = "data-state" =: "empty" <> "class" =: "tile" <> "data-animation" =: "pop1"
+attrs Grey = "data-state" =: "absent" <> "class" =: "tile" <> "data-animation" =: "pop2"
+attrs Yellow = "data-state" =: "present" <> "class" =: "tile" <> "data-animation" =: "pop3"
+attrs Green = "data-state" =: "correct" <> "class" =: "tile" <> "data-animation" =: "pop4"
 
-makeGuess :: [Color] -> [T.Text]
-makeGuess cs = concatMap (map (T.singleton . toUpper) . T.unpack) [g0, g1, g2, g3, g4, g5]
+makeGuess :: [[Color]] -> [[T.Text]]
+makeGuess words = map (map T.singleton . T.unpack) gs
   where
-    words = chunksOf 5 cs
-    g0 = guessWord' fd gd []
-    g1 = if all hasGuess (take 1 words) then guessWord' fd gd $ concat (zipWith g [g0] (take 1 words)) else "     "
-    g2 = if all hasGuess (take 2 words) then guessWord' fd gd $ concat (zipWith g [g0, g1] (take 2 words)) else "     "
-    g3 = if all hasGuess (take 3 words) then guessWord' fd gd $ concat (zipWith g [g0, g1, g2] (take 3 words)) else "     "
-    g4 = if all hasGuess (take 4 words) then guessWord' fd gd $ concat (zipWith g [g0, g1, g2, g3] (take 4 words)) else "     "
-    g5 = if all hasGuess (take 5 words) then guessWord' fd gd $ concat (zipWith g [g0, g1, g2, g3, g4] (take 5 words)) else "     "
+    Just g0 = guessWord' fd gd []
+    gs = g0 : map ff [1 .. 5]
+    ff x =
+      if all hasGuess (take x words)
+        then case guessWord' fd gd $ concat (zipWith g (take x gs) (take x words)) of
+          Just x -> x
+          Nothing -> "XXXXX"
+        else "     "
+
     g :: T.Text -> [Color] -> Guess
     g a b = zipWith h (zip [0 ..] (T.unpack a)) b
     h :: (Int, Char) -> Color -> Letter
@@ -63,7 +74,9 @@ makeGuess cs = concatMap (map (T.singleton . toUpper) . T.unpack) [g0, g1, g2, g
     h (_, c) Grey = Incorrect c
     h (i, c) Yellow = Contains c i
     h (i, c) Green = Correct c i
-    hasGuess x = Black `notElem` x && not (all (== Green) x)
+
+hasGuess :: [Color] -> Bool
+hasGuess x = Black `notElem` x && not (all (== Green) x)
 
 data Color = Black | Grey | Yellow | Green deriving (Eq)
 
@@ -71,12 +84,6 @@ nextColor Grey = Yellow
 nextColor Yellow = Green
 nextColor Green = Black
 nextColor Black = Grey
-
-attrs :: Color -> T.Text
-attrs Black = "cell-black"
-attrs Grey = "cell-grey"
-attrs Yellow = "cell-yellow"
-attrs Green = "cell-green"
 
 gdbs = $(embedFile "wordle-answers-alphabetical.txt")
 
