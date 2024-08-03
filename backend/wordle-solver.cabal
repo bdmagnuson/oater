@@ -58,6 +58,7 @@ library wordle-solver-lib
                        , unordered-containers
                        , containers
                        , lens
+                       , recursion-schemes
 
   default-extensions:    OverloadedStrings
                        , TemplateHaskell
@@ -71,3 +72,5 @@ library wordle-solver-lib
                        , DeriveDataTypeable
                        , DeriveFunctor
                        , InstanceSigs
+
+

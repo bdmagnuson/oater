@@ -1,0 +1,60 @@
+	Sat Aug  3 13:48 2024 Time and Allocation Profiling Report  (Final)
+
+	   wordle-solver +RTS -p -RTS
+
+	total time  =        8.46 secs   (8460 ticks @ 1000 us, 1 processor)
+	total alloc = 16,236,330,752 bytes  (excludes profiling overheads)
+
+COST CENTRE MODULE        SRC                                  %time %alloc
+
+reduceL'.go Wordle.Solver src/Wordle/Solver.hs:(50,5)-(54,54)   90.9   89.1
+reduceL'    Wordle.Solver src/Wordle/Solver.hs:(48,1)-(54,54)    7.2    9.7
+
+
+                                                                                                                                     individual      inherited
+COST CENTRE                         MODULE                  SRC                                                   no.     entries  %time %alloc   %time %alloc
+
+MAIN                                MAIN                    <built-in>                                            301           0    0.0    0.0   100.0  100.0
+ CAF                                Main                    <entire-module>                                       601           0    0.0    0.0     0.0    0.0
+  main                              Main                    app/Main.hs:(9,1)-(20,40)                             602           1    0.0    0.0     0.0    0.0
+ CAF                                Wordle.Solver           <entire-module>                                       600           0    0.0    0.0     0.0    0.0
+  applyAll                          Wordle.Solver           src/Wordle/Solver.hs:64:1-39                          626           1    0.0    0.0     0.0    0.0
+ CAF                                Data.Text.Array         <entire-module>                                       521           0    0.0    0.0     0.0    0.0
+ CAF                                Data.Text.IO            <entire-module>                                       518           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.Conc.Signal         <entire-module>                                       420           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.Encoding         <entire-module>                                       403           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.Encoding.Iconv   <entire-module>                                       401           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.Exception        <entire-module>                                       395           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.Handle.FD        <entire-module>                                       393           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.Handle.Internals <entire-module>                                       392           0    0.0    0.0     0.0    0.0
+ CAF                                GHC.IO.FD               <entire-module>                                       333           0    0.0    0.0     0.0    0.0
+ main                               Main                    app/Main.hs:(9,1)-(20,40)                             603           0    0.0    0.0   100.0  100.0
+  readTextDevice                    Data.Text.Internal.IO   libraries/text/src/Data/Text/Internal/IO.hs:133:39-64 604          41    0.0    0.0     0.0    0.0
+  solve                             Wordle.Solver           src/Wordle/Solver.hs:(98,1)-(102,111)                 605           1    0.0    0.0   100.0  100.0
+   solve.go                         Wordle.Solver           src/Wordle/Solver.hs:(100,5)-(102,111)                606           3    0.0    0.0   100.0  100.0
+    checkGuess                      Wordle.Solver           src/Wordle/Solver.hs:(90,1)-(95,32)                   628           2    0.0    0.0     0.0    0.0
+     checkGuess.f                   Wordle.Solver           src/Wordle/Solver.hs:(92,5)-(95,32)                   630          10    0.0    0.0     0.0    0.0
+    reduceG                         Wordle.Solver           src/Wordle/Solver.hs:78:1-36                          625           2    0.0    0.0     0.0    0.0
+     applyAll                       Wordle.Solver           src/Wordle/Solver.hs:64:1-39                          627           0    0.0    0.0     0.0    0.0
+      reduceL                       Wordle.Solver           src/Wordle/Solver.hs:(70,1)-(75,17)                   629          10    0.0    0.0     0.0    0.0
+       hasLetter                    Wordle.Solver           src/Wordle/Solver.hs:67:1-40                          631        3878    0.0    0.0     0.0    0.0
+       reduceL.\                    Wordle.Solver           src/Wordle/Solver.hs:72:34-49                         632         982    0.0    0.0     0.0    0.0
+       reduceL.\                    Wordle.Solver           src/Wordle/Solver.hs:73:36-51                         633          14    0.0    0.0     0.0    0.0
+    solve.go.(...)                  Wordle.Solver           src/Wordle/Solver.hs:102:18-40                        608           2    0.0    0.0   100.0  100.0
+     guessWord                      Wordle.Solver           src/Wordle/Solver.hs:(81,1)-(84,24)                   609           2    0.0    0.0   100.0  100.0
+      foo2                          Wordle.Solver           src/Wordle/Solver.hs:57:1-57                          610           2    0.3    0.1   100.0  100.0
+       foo3                         Wordle.Solver           src/Wordle/Solver.hs:(37,1)-(45,38)                   611        4630    0.0    0.0    99.6   99.9
+        hylo                        Data.Functor.Foldable   src/Data/Functor/Foldable.hs:375:1-37                 612        4630    0.4    0.1    99.6   99.9
+         foo3.distribute            Wordle.Solver           src/Wordle/Solver.hs:(39,5)-(43,58)                   613      717166    0.6    0.5    98.9   99.3
+          foo3.distribute.(...)     Wordle.Solver           src/Wordle/Solver.hs:43:9-58                          615      237512    0.0    0.0    98.3   98.7
+           reduceL'                 Wordle.Solver           src/Wordle/Solver.hs:(48,1)-(54,54)                   616      237512    7.2    9.7    98.3   98.7
+            reduceL'.(...)          Wordle.Solver           src/Wordle/Solver.hs:48:25-68                         618      237512    0.1    0.0    91.0   89.1
+             reduceL'.go            Wordle.Solver           src/Wordle/Solver.hs:(50,5)-(54,54)                   619    27600812   90.9   89.1    90.9   89.1
+            reduceL'.a              Wordle.Solver           src/Wordle/Solver.hs:48:25-68                         617      237512    0.0    0.0     0.0    0.0
+            reduceL'.b              Wordle.Solver           src/Wordle/Solver.hs:48:25-68                         622      237512    0.0    0.0     0.0    0.0
+            reduceL'.c              Wordle.Solver           src/Wordle/Solver.hs:48:25-68                         624      237512    0.0    0.0     0.0    0.0
+          foo3.distribute.contains  Wordle.Solver           src/Wordle/Solver.hs:43:9-58                          621      237512    0.0    0.0     0.0    0.0
+          foo3.distribute.correct   Wordle.Solver           src/Wordle/Solver.hs:43:9-58                          614      237512    0.0    0.0     0.0    0.0
+          foo3.distribute.incorrect Wordle.Solver           src/Wordle/Solver.hs:43:9-58                          623      237512    0.0    0.0     0.0    0.0
+         foo3.gather                Wordle.Solver           src/Wordle/Solver.hs:(44,5)-(45,38)                   620      717166    0.3    0.5     0.3    0.5
+    solve.go.g                      Wordle.Solver           src/Wordle/Solver.hs:102:18-40                        607           2    0.0    0.0     0.0    0.0
