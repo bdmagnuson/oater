@@ -1,0 +1,2 @@
+compiler: ghcjs
+packages: frontend/frontend.cabal wordle-solver/wordle-solver.cabal

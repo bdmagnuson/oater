@@ -1,0 +1,1 @@
+packages: wordle-solver/wordle-solver.cabal frontend/frontend.cabal

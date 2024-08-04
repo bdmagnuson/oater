@@ -42,6 +42,7 @@ foo3 d t = hylo gather distribute (d, T.unpack t, 0)
     gather (LeafF n) = [n]
     gather (NodeF a b c) = a ++ b ++ c
 
+
 reduceL' :: Dictionary -> (Char, Int) -> (Dictionary, Dictionary, Dictionary)
 reduceL' d (c, i) = go d ([], [], [])
   where
@@ -76,6 +77,8 @@ reduceG :: Guess -> Dictionary -> Dictionary
 reduceG g = applyAll (map reduceL g)
 
 guessWord :: Dictionary -> Dictionary -> Maybe Text
+guessWord fd [] = Nothing
+guessWord fd [gd] = Just gd
 guessWord fd gd =
   case foo2 fd gd of
     [] -> Nothing
@@ -99,6 +102,6 @@ solve fd gd w = go 20 gd
     go _ [d] = [d]
     go n d = let Just g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
 
-gd = unsafePerformIO (T.lines <$> TIO.readFile "wordle-answers-alphabetical.txt")
+gd = unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-answers-alphabetical.txt")
 
-fd = unsafePerformIO (T.lines <$> TIO.readFile "wordle-allowed-guesses.txt")
+fd = unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-allowed-guesses.txt")
