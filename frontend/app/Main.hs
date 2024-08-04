@@ -55,10 +55,11 @@ attrs Grey = "data-state" =: "absent" <> "class" =: "tile" <> "data-animation" =
 attrs Yellow = "data-state" =: "present" <> "class" =: "tile" <> "data-animation" =: "pop3"
 attrs Green = "data-state" =: "correct" <> "class" =: "tile" <> "data-animation" =: "pop4"
 
+Just g0 = Just "salet" --guessWord' fd gd []
+
 makeGuess :: [[Color]] -> [[T.Text]]
 makeGuess words = map (map T.singleton . T.unpack) gs
   where
-    Just g0 = guessWord' fd gd []
     gs = g0 : map ff [1 .. 5]
     ff x =
       if all hasGuess (take x words)

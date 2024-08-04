@@ -59,6 +59,7 @@ library
                        , lens
                        , recursion-schemes
                        , memoize
+                       , hashable
 
   default-extensions:    OverloadedStrings
                        , TemplateHaskell
