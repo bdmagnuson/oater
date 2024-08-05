@@ -2,15 +2,15 @@
 
 Yet another Wordle Solver.
 
-Average solve: 3.59 guesess
+Average solve: 3.43 guesess
 
 | Number of Guesses | Word Count |
 | --- | --- |
-| Two | 38 |
-| Three | 971 |
-| Four | 1221 |
-| Five | 82 |
-| Six | 3 |
+| Two | 78 |
+| Three | 1205 |
+| Four | 984 |
+| Five | 46 |
+| Six | 2 |
 
 If limited to only possible answers
 

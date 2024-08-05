@@ -31,7 +31,8 @@ executable wordle-solver-app
     -- other-extensions:
     build-depends:      base >=4.14.3.0
                       , wordle-solver
-                       , text
+                      , text
+                      , containers
 
     ghc-options: -O2
     hs-source-dirs:   app

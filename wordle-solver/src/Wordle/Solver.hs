@@ -36,11 +36,13 @@ type Dictionary = S.Set Text
 foo3 :: Dictionary -> Text -> Int
 foo3 d t = hylo gather distribute (d, T.unpack t, 0)
   where
-    distribute ([], _, _) = LeafF 0
-    distribute (d, "", _) = LeafF 1
-    distribute (d, c : cs, p) = NodeF (correct, cs, p + 1) (contains, cs, p + 1) (incorrect, cs, p + 1)
-      where
-        (correct, contains, incorrect) = reduceL' d (c, p)
+    distribute (d, w, p)
+      | S.null d = LeafF 0
+      | w == "" = LeafF 1
+      | otherwise =
+         let (c:cs) = w 
+             (correct, contains, incorrect) = reduceL' d (c, p)
+         in NodeF (correct, cs, p + 1) (contains, cs, p + 1) (incorrect, cs, p + 1)
     gather (LeafF n) = n
     gather (NodeF a b c) = a + b + c
 
@@ -62,12 +64,10 @@ hasLetter :: Char -> Text -> Bool
 hasLetter c t = T.any (== c) t
 
 reduceL' :: Dictionary -> (Char, Int) -> (Dictionary, Dictionary, Dictionary)
-reduceL' d (c, i) = foldl go ([], [], []) d
+reduceL' d (c, i) = (corr, cont, inc)
   where
-    go (corr, cont, inc) w
-      | T.index w i == c = let a = (w:corr, cont, inc) in a
-      | T.any (== c) w = let b = (corr, w:cont, inc) in b
-      | otherwise = let c = (corr, cont, w:inc) in c
+    (cont', inc) = S.partition (\w -> T.any (== c) w) d
+    (corr, cont) = S.partition (\w -> T.index w i == c) cont'
 
 reduceL :: Letter -> Dictionary -> Dictionary
 reduceL l d =
@@ -81,12 +81,11 @@ reduceG :: Guess -> Dictionary -> Dictionary
 reduceG g = applyAll (map reduceL g)
 
 guessWord :: Dictionary -> Dictionary -> Maybe Text
-guessWord fd [] = Nothing
-guessWord fd [gd] = Just gd
 guessWord fd gd =
-  case foo2 fd gd of
-    [] -> Nothing
-    xs -> Just (last xs)
+  case S.size gd of
+    0 -> Nothing
+    1 -> let [w] = S.toList gd in Just w
+    otherwise -> Just (foo2 fd gd)
 
 guessWord' :: Dictionary -> Dictionary -> Guess -> Maybe Text
 guessWord' fd gd g = guessWord fd (reduceG g gd)
@@ -103,9 +102,11 @@ checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
 solve :: Dictionary -> Dictionary -> Text -> [Text]
 solve fd gd w = "salet" : go 20 (reduceG (checkGuess w "salet") gd)
   where
-    go 0 _ = []
-    go _ [d] = [d]
-    go n d = let Just g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
+    go :: Int -> Dictionary -> [Text]
+    go n d 
+      | n == 0 = []
+      | S.size d == 1 = S.toList d
+      | otherwise = let Just g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
 
 gd = unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-answers-alphabetical.txt")
 
