@@ -10,10 +10,10 @@ main =
   do
     fd <- T.lines <$> TIO.readFile "frontend/wordle-allowed-guesses.txt"
     gd <- T.lines <$> TIO.readFile "frontend/wordle-answers-alphabetical.txt"
-    let scores = map (length . solve gd gd) gd
+    let scores = map (length . solve (gd ++ fd) gd) gd
     let hist = let g = (group . sort) scores in zip (map head g) (map length g)
 
     --putStrLn $ "maximum solve: " ++ show (maximum scores)
     --putStrLn $ "average solve: " ++ show (fromIntegral (sum scores) / fromIntegral (length scores))
     --putStrLn $ "hist solve:" ++ show hist
-    print $ solve fd gd (T.pack "snowy")
+    print $ solve (fd ++ gd) gd (T.pack "snowy")

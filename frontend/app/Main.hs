@@ -63,7 +63,7 @@ makeGuess words = map (map T.singleton . T.unpack) gs
     gs = g0 : map ff [1 .. 5]
     ff x =
       if all hasGuess (take x words)
-        then case guessWord' fd gd $ concat (zipWith g (take x gs) (take x words)) of
+        then case guessWord' (fd ++ gd) gd $ concat (zipWith g (take x gs) (take x words)) of
           Just x -> x
           Nothing -> "XXXXX"
         else "     "

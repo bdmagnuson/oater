@@ -2,79 +2,36 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE DeriveGeneric #-}
 
-module Wordle.Solver (guessWord', solve, Letter (..), Guess, foo2, lookupW') where
+module Wordle.Solver (guessWord', solve, Letter (..), Guess) where
 
 import Control.Lens
 import Data.Char
 import Data.Functor.Foldable
 import Data.Functor.Foldable.TH (makeBaseFunctor)
 import Data.List
-import Data.Map.Lazy qualified as M
-import Data.Maybe (isJust)
 import Data.Monoid
-import Data.Ord
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Set qualified as S
 import Data.Text.IO qualified as TIO
-import Data.Hashable
-import Data.Function.Memoize
 import GHC.IO.Unsafe
-import GHC.Generics (Generic)
-import Debug.Trace
+import Control.Arrow
 
 data Letter
   = Correct Char Int
   | Contains Char Int
   | Incorrect Char
   | NoAnswer
-  deriving (Show, Generic, Eq, Ord)
-
-instance Hashable Letter
+  deriving (Show, Eq)
 
 data Tree = Node Tree Tree Tree | Leaf Int deriving (Show)
 
 makeBaseFunctor ''Tree
 
-data Div = NodeD (M.Map Letter Div) | LeafD Int
+type Guess = [Letter]
 
-
-construct :: Dictionary -> Div
-construct = go 0
-  where go 5 d = LeafD (length d)
-        go _ [] = LeafD 0
-        go n d = let map = M.fromList [(k, go (n + 1) (reduceL k d)) | k <- ks n] in NodeD map
-
-ks = memoize f
-  where f n = concatMap (\k -> [Incorrect k, Contains k n, Correct k n]) ['a'..'z']
-
-lookupW :: Dictionary -> Text -> [Int]
-lookupW gd w = map (lookupG . reverse) gs
-  where gs = gooo 0 (T.unpack w) []
-        div = construct gd
-        lookupG :: Guess -> Int 
-        lookupG g = go g div
-          where go _ (LeafD n) = n
-                go [] (NodeD _) = error "got to end?"
-                go (g:gs) (NodeD d) = go gs (d ^?! ix g)
-
-
-lookupW' :: Dictionary -> Dictionary
-lookupW' gd = sortOn (length . filter (/=0) . map (lookupG . reverse) . gs) gd
-  where gs w = gooo 0 (T.unpack w) []
-        div = construct gd
-        lookupG :: Guess -> Int 
-        lookupG g = go g div
-          where go _ (LeafD n) = n
-                go [] (NodeD _) = error "got to end?"
-                go (g:gs) (NodeD d) = go gs (d ^?! ix g)
-
-gooo :: Int -> String -> [Guess] -> [Guess]
-gooo _ "" gs = gs
-gooo n (c:cs) [] = gooo (n + 1) cs [[Incorrect c], [Correct c n], [Contains c n]]
-gooo n (c:cs) gs = gooo (n + 1) cs (map (Incorrect c:) gs ++ map (Correct c n:) gs ++ map (Contains c n:) gs)
+type Dictionary = S.Set Text
 
 foo3 :: Dictionary -> Text -> Int
 foo3 d t = hylo gather distribute (d, T.unpack t, 0)
@@ -87,6 +44,23 @@ foo3 d t = hylo gather distribute (d, T.unpack t, 0)
     gather (LeafF n) = n
     gather (NodeF a b c) = a + b + c
 
+foo2 :: Dictionary -> Dictionary -> Text
+foo2 fd gd =
+  let a = S.toList (S.map (id &&& foo3 gd) fd)
+      b = sortBy f a
+      f (w1, s1) (w2, s2) =
+        case compare s1 s2 of
+          LT -> LT
+          GT -> GT
+          EQ -> if w1 `elem` gd then GT else LT
+  in (fst . last) b
+
+applyAll :: [a -> a] -> a -> a
+applyAll = appEndo . mconcat . map Endo
+
+hasLetter :: Char -> Text -> Bool
+hasLetter c t = T.any (== c) t
+
 reduceL' :: Dictionary -> (Char, Int) -> (Dictionary, Dictionary, Dictionary)
 reduceL' d (c, i) = foldl go ([], [], []) d
   where
@@ -94,26 +68,6 @@ reduceL' d (c, i) = foldl go ([], [], []) d
       | T.index w i == c = let a = (w:corr, cont, inc) in a
       | T.any (== c) w = let b = (corr, w:cont, inc) in b
       | otherwise = let c = (corr, cont, w:inc) in c
-
-foo2 :: Dictionary -> Dictionary -> Dictionary
-foo2 fd gd = sortOn (foo3 gd) fd
-
-stddev' :: [Float] -> Float
-stddev' xs = sqrt . average . map ((^2) . (-) axs) $ xs
-           where average = (/) <$> sum <*> realToFrac . length
-                 axs     = average xs
-
-stddev = stddev' . map fromIntegral
-
-type Guess = [Letter]
-
-type Dictionary = [Text]
-
-applyAll :: [a -> a] -> a -> a
-applyAll = appEndo . mconcat . map Endo
-
-hasLetter :: Char -> Text -> Bool
-hasLetter c t = isJust (T.find (== c) t)
 
 reduceL :: Letter -> Dictionary -> Dictionary
 reduceL l d =
@@ -145,9 +99,9 @@ checkGuess w g = zipWith3 f [0 .. 4] (T.unpack w) (T.unpack g)
       | T.any (== l2) w = Contains l2 i
       | otherwise = Incorrect l2
 
+-- 'pre-guess' salet since that's what it's going to do anyway
 solve :: Dictionary -> Dictionary -> Text -> [Text]
---solve fd gd w = "trace" : go 20 (reduceG (checkGuess w "trace") gd)
-solve fd gd w = go 20 gd
+solve fd gd w = "salet" : go 20 (reduceG (checkGuess w "salet") gd)
   where
     go 0 _ = []
     go _ [d] = [d]
