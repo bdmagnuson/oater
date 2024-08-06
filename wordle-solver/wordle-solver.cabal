@@ -33,6 +33,7 @@ executable wordle-solver-app
                       , wordle-solver
                       , text
                       , containers
+                      , unordered-containers
 
     ghc-options: -O2
     hs-source-dirs:   app

@@ -33,8 +33,8 @@ type Guess = [Letter]
 
 type Dictionary = S.Set Text
 
-foo3 :: Dictionary -> Text -> Int
-foo3 d t = hylo gather distribute (d, T.unpack t, 0)
+scoreWord :: Dictionary -> Text -> Int
+scoreWord d t = hylo gather distribute (d, T.unpack t, 0)
   where
     distribute (d, w, p)
       | S.null d = LeafF 0
@@ -46,22 +46,8 @@ foo3 d t = hylo gather distribute (d, T.unpack t, 0)
     gather (LeafF n) = n
     gather (NodeF a b c) = a + b + c
 
-foo2 :: Dictionary -> Dictionary -> Text
-foo2 fd gd =
-  let a = S.toList (S.map (id &&& foo3 gd) fd)
-      b = sortBy f a
-      f (w1, s1) (w2, s2) =
-        case compare s1 s2 of
-          LT -> LT
-          GT -> GT
-          EQ -> if w1 `elem` gd then GT else LT
-  in (fst . last) b
-
 applyAll :: [a -> a] -> a -> a
 applyAll = appEndo . mconcat . map Endo
-
-hasLetter :: Char -> Text -> Bool
-hasLetter c t = T.any (== c) t
 
 reduceL' :: Dictionary -> (Char, Int) -> (Dictionary, Dictionary, Dictionary)
 reduceL' d (c, i) = (corr, cont, inc)
@@ -85,7 +71,15 @@ guessWord fd gd =
   case S.size gd of
     0 -> Nothing
     1 -> let [w] = S.toList gd in Just w
-    otherwise -> Just (foo2 fd gd)
+    otherwise ->
+      let a = S.toList (S.map (id &&& scoreWord gd) fd)
+          b = sortBy f a
+          f (w1, s1) (w2, s2) =
+            case compare s1 s2 of
+              LT -> LT
+              GT -> GT
+              EQ -> if w1 `elem` gd then GT else LT
+      in Just $ (fst . last) b
 
 guessWord' :: Dictionary -> Dictionary -> Guess -> Maybe Text
 guessWord' fd gd g = guessWord fd (reduceG g gd)
@@ -108,6 +102,6 @@ solve fd gd w = "salet" : go 20 (reduceG (checkGuess w "salet") gd)
       | S.size d == 1 = S.toList d
       | otherwise = let Just g = guessWord fd d in if g == w then [g] else g : go (n - 1) (reduceG (checkGuess w g) d)
 
-gd = unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-answers-alphabetical.txt")
+gd = S.fromList $ unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-answers-alphabetical.txt")
 
-fd = unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-allowed-guesses.txt")
+fd = S.union gd (S.fromList $ unsafePerformIO (T.lines <$> TIO.readFile "../frontend/wordle-allowed-guesses.txt"))

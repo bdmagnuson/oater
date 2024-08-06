@@ -15,10 +15,10 @@ main =
     let gds = S.fromList gd
     let fds = S.union gds (S.fromList fd)
 
-    let scores = map (length . solve fds gds) gd
+    --let scores = map (length . solve fds gds) (take 20 gd)
+    let scores = zip gd $ map (length . solve fds gds) gd
     let hist = let g = (group . sort) scores in zip (map head g) (map length g)
 
     putStrLn $ "maximum solve: " ++ show (maximum scores)
     putStrLn $ "average solve: " ++ show (fromIntegral (sum scores) / fromIntegral (length scores))
     putStrLn $ "hist solve:" ++ show hist
-    --print $ solve fds gds (T.pack "snowy")
