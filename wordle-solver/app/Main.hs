@@ -12,11 +12,10 @@ main =
     fd <- T.lines <$> TIO.readFile "frontend/wordle-allowed-guesses.txt"
     gd <- T.lines <$> TIO.readFile "frontend/wordle-answers-alphabetical.txt"
 
-    let gds = S.fromList gd
-    let fds = S.union gds (S.fromList fd)
+    let gds = gd
+    let fds = gds ++ fd
 
-    --let scores = map (length . solve fds gds) (take 20 gd)
-    let scores = zip gd $ map (length . solve fds gds) gd
+    let scores = map (length . solve fds gds) gd
     let hist = let g = (group . sort) scores in zip (map head g) (map length g)
 
     putStrLn $ "maximum solve: " ++ show (maximum scores)

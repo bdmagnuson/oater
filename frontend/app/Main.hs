@@ -64,7 +64,7 @@ makeGuess words = map (map T.singleton . T.unpack) gs
     gs = g0 : map ff [1 .. 5]
     ff x =
       if all hasGuess (take x words)
-        then case guessWord' md gds $ concat (zipWith g (take x gs) (take x words)) of
+        then case guessWord' md gd $ concat (zipWith g (take x gs) (take x words)) of
           Just x -> x
           Nothing -> "XXXXX"
         else "     "
@@ -95,6 +95,4 @@ fd = (T.lines . T.pack . BS.unpack) fdbs
 
 gd = (T.lines . T.pack . BS.unpack) gdbs
 
-gds = S.fromList gd
-
-md = S.union (S.fromList fd) gds
+md = fd ++ gd
